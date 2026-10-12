@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { isMarketHoursET } from "@/lib/market-hours";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -108,28 +109,20 @@ export default function OpenPositions() {
   useEffect(() => {
     if (positions.length === 0) return;
 
-    const isMarketHours = () => {
-      const now = new Date();
-      // Using toLocaleString with timeZone to get EST time components
-      const estTimeString = now.toLocaleString("en-US", { timeZone: "America/New_York", weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false });
-      const estDate = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-
-      const hours = estDate.getHours();
-      const day = estDate.getDay(); // Sunday is 0, Monday is 1, ..., Saturday is 6
-      
-      // Market hours are Mon-Fri, 9:00 AM to 4:00 PM EST
-      return day >= 1 && day <= 5 && hours >= 9 && hours < 16;
-    };
+    // Checked on every tick, so a page opened before the bell still starts
+    // refreshing at the open (previously it was only checked once on load).
+    const isMarketHours = () => isMarketHoursET();
 
     let interval;
-    if (positions.length > 0 && isMarketHours()) {
+    if (positions.length > 0) {
       interval = setInterval(() => {
+        if (!isMarketHours()) return;
         console.log("Auto-refreshing prices during market hours...");
         const symbols = [...new Set(positions.map((p) => p.symbol))];
         fetchCurrentPrices(symbols);
       }, 60000); // 60000ms = 1 minute
     } else {
-      console.log("Not market hours or no positions, auto-refresh is off.");
+      console.log("No positions, auto-refresh is off.");
     }
 
     return () => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { isMarketHoursET } from "@/lib/market-hours";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -65,23 +66,14 @@ export default function OpenPositions2() {
   useEffect(() => {
     if (positions.length === 0) return;
 
-    const isMarketHours = () => {
-      const now = new Date();
-      // Use "America/New_York" for EST/EDT
-      const estTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-      const hours = estTime.getHours();
-      const day = estTime.getDay(); // Sunday - 0, Monday - 1, ..., Saturday - 6
-      
-      // Market hours for NYSE/NASDAQ are typically 9:30 AM to 4:00 PM EST/EDT
-      // Check for weekdays (Monday to Friday) and hours between 9 (inclusive) and 16 (exclusive, i.e., up to 3:59 PM)
-      // For more precise timing, one might check minutes as well, e.g., 9:30-16:00
-      // For simplicity here, 9:00 AM to 3:59 PM EST is used.
-      return day >= 1 && day <= 5 && hours >= 9 && hours < 16;
-    };
+    // Checked on every tick, so a page opened before the bell still starts
+    // refreshing at the open (previously it was only checked once on load).
+    const isMarketHours = () => isMarketHoursET();
 
     let interval;
-    if (positions.length > 0 && isMarketHours()) {
+    if (positions.length > 0) {
       interval = setInterval(() => {
+        if (!isMarketHours()) return;
         const symbols = [...new Set(positions.map((p) => p.symbol))];
         fetchCurrentPrices(symbols);
         // Only fetch historical prices if a specific period is selected (not 'TOTAL')

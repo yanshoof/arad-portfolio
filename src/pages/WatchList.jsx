@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { isMarketHoursET } from "@/lib/market-hours";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -234,18 +235,14 @@ export default function WatchList() {
   useEffect(() => {
     if (watchList.length === 0) return;
 
-    const isMarketHours = () => {
-      const now = new Date();
-      const estTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-      const hours = estTime.getHours();
-      const day = estTime.getDay();
-
-      return day >= 1 && day <= 5 && hours >= 9 && hours < 16;
-    };
+    // Checked on every tick, so a page opened before the bell still starts
+    // refreshing at the open (previously it was only checked once on load).
+    const isMarketHours = () => isMarketHoursET();
 
     let interval;
-    if (watchList.length > 0 && isMarketHours()) {
+    if (watchList.length > 0) {
       interval = setInterval(() => {
+        if (!isMarketHours()) return;
         fetchAllPrices(watchList);
       }, 60000);
     }
