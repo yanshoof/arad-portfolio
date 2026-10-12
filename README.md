@@ -20,9 +20,8 @@ as before. The calls now go to `/api/*`.
 
 | Name | Purpose |
 |---|---|
-| `APP_PASSWORD` | Login password. Changing it logs out every device. |
+| `APP_USERS` | Logins as `name:password` pairs, comma-separated (e.g. `eran:...,dad:...`). Each person has their own password and both see the same portfolio. Removing a name logs that person out. |
 | `SESSION_SECRET` | Signs the login cookie. |
-| `OWNER_EMAIL` | Shown as the account email. |
 | `FINNHUB_API_KEY` | Optional backup price source. |
 
 After changing a variable, redeploy so the new value takes effect.
@@ -42,7 +41,7 @@ The **DATA** page has:
 - Option prices now use Yahoo's cookie/crumb handshake. Yahoo's v7 endpoints started requiring it; the old code noted 401 "Invalid Crumb" errors on those endpoints.
 - Chart data comes from Yahoo instead of the dead Tradier key.
 - The news page loads on first visit. Before, it stayed empty until you pressed REFRESH.
-- Login is a single password. Removed Base44-only pieces: the visual editor, the OAuth consent page, analytics.
+- Each person (Eran, Dad) logs in with their own password. Removed Base44-only pieces: the visual editor, the OAuth consent page, analytics.
 
 ## Local development
 

@@ -14,7 +14,7 @@ import {
   replaceUserDoc,
 } from '../lib/store.mjs';
 import {
-  isAuthenticated,
+  sessionUser,
   checkPassword,
   passwordConfigured,
   makeSessionCookie,
@@ -41,12 +41,13 @@ async function readBody(req) {
   }
 }
 
-function ownerProfile(doc) {
+// Both logins share one portfolio; the profile just says who is signed in.
+function ownerProfile(doc, userName) {
   return {
     ...doc,
-    id: 'owner',
-    email: env('OWNER_EMAIL') || 'owner@arad-portfolio',
-    full_name: env('OWNER_NAME') || 'Eran Arad',
+    id: userName,
+    email: `${userName}@arad-portfolio`,
+    full_name: userName.charAt(0).toUpperCase() + userName.slice(1),
     role: 'admin',
   };
 }
@@ -83,14 +84,15 @@ async function handle(req) {
   // ----- Public routes -----
   if (section === 'login' && method === 'POST') {
     if (!passwordConfigured()) {
-      return json({ error: 'APP_PASSWORD is not set on Netlify yet.' }, 503);
+      return json({ error: 'No logins are set up yet (APP_USERS on Netlify).' }, 503);
     }
     const { password } = await readBody(req);
-    if (!checkPassword(password || '')) {
+    const name = checkPassword(password || '');
+    if (!name) {
       await new Promise((r) => setTimeout(r, 700)); // slow down guessing
       return json({ error: 'Wrong password' }, 401);
     }
-    return json({ ok: true }, 200, { 'set-cookie': makeSessionCookie() });
+    return json({ ok: true }, 200, { 'set-cookie': makeSessionCookie(name) });
   }
   if (section === 'logout') {
     return json({ ok: true }, 200, { 'set-cookie': clearSessionCookie() });
@@ -100,12 +102,13 @@ async function handle(req) {
   }
 
   // ----- Everything below requires login -----
-  if (!isAuthenticated(req)) return json({ error: 'Authentication required' }, 401);
+  const userName = sessionUser(req);
+  if (!userName) return json({ error: 'Authentication required' }, 401);
 
   if (section === 'me') {
-    if (method === 'GET') return json(ownerProfile(await getUserDoc()));
+    if (method === 'GET') return json(ownerProfile(await getUserDoc(), userName));
     if (method === 'PUT' || method === 'PATCH' || method === 'POST') {
-      return json(ownerProfile(await updateUserDoc(await readBody(req))));
+      return json(ownerProfile(await updateUserDoc(await readBody(req)), userName));
     }
   }
 
@@ -135,7 +138,7 @@ async function handle(req) {
       if (method === 'POST') {
         const body = await readBody(req);
         const items = Array.isArray(body) ? body : [body];
-        const created = await createRows(name, items, { by: env('OWNER_EMAIL') || 'owner' });
+        const created = await createRows(name, items, { by: userName });
         return json(Array.isArray(body) ? created : created[0], 201);
       }
       if (method === 'DELETE') {
@@ -194,7 +197,7 @@ async function handle(req) {
       }
       if (!Array.isArray(rows)) continue;
       if (mode === 'replace') await replaceAllRows(name, []);
-      const created = await createRows(name, rows, { preserveIds: true, by: env('OWNER_EMAIL') || 'owner' });
+      const created = await createRows(name, rows, { preserveIds: true, by: userName });
       summary[name] = created.length;
     }
     if (body.user && typeof body.user === 'object') {
