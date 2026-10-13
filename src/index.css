@@ -156,3 +156,13 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+/* Page chrome (titles, buttons, cards, filters) 10% smaller; tables keep
+   their original size. Popovers and dialogs render outside #root, so they
+   are unaffected. */
+#root {
+  zoom: 0.9;
+}
+#root table {
+  zoom: 1.1111;
+}
