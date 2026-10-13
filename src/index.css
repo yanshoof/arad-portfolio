@@ -157,12 +157,12 @@ button:focus-visible {
   }
 }
 
-/* Page chrome (titles, buttons, cards, filters) 10% smaller; tables keep
+/* Page chrome (titles, buttons, cards, filters) 23.5% smaller; tables keep
    their original size. Popovers and dialogs render outside #root, so they
    are unaffected. */
 #root {
-  zoom: 0.9;
+  zoom: 0.765; /* 0.9 x 0.85 */
 }
 #root table {
-  zoom: 1.1111;
+  zoom: 1.30719; /* 1 / 0.765, keeps tables at original size */
 }
